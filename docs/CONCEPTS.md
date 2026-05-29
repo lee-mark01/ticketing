@@ -4,19 +4,21 @@
 > 측정 산출물은 `docs/evidence/`에 모은다.
 
 ## ① 데이터베이스 설계
-- 구현 위치: `V1__init.sql`, JPA 엔티티
+- 구현 위치: `V1__init.sql`, JPA 엔티티 8개 (`backend/src/main/java/com/ticketing/*/entity/`)
 - 증거물:
   - [ ] ERD 다이어그램 1장
   - [ ] 엔티티 관계 설명 (DATA_MODEL.md 요약)
 
 ## ② 정규화
 - 구현 위치: 스키마 구조 (seats / event_seats 분리, reservation_items 교차)
+- 발표 포인트: 좌석맵 native SQL에서 두 테이블 JOIN이 정규화의 결과임을 보여줌
 - 증거물:
   - [ ] 3NF 만족 근거 설명 (갱신 이상 방지)
   - [ ] 의도적 비정규화(`available_seat_count`)와 그 트레이드오프 설명
+  - [ ] 같은 물리좌석이 공연별로 다른 가격을 가지는 시드 데이터 예시
 
 ## ③ 인덱싱
-- 구현 위치: `V2__add_indexes.sql`, native 조회 쿼리
+- 구현 위치: `V3__add_indexes.sql`, native 좌석맵 쿼리 (`EventSeatRepository.findSeatMapByEventId`)
 - 증거물:
   - [ ] 핫패스 쿼리의 `EXPLAIN ANALYZE` **인덱스 추가 전/후 비교** (실행시간·스캔방식)
   - [ ] 복합 인덱스 / 부분 인덱스 사용 사례 각 1개

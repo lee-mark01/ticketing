@@ -3,25 +3,25 @@
 > 작업은 이 순서대로 진행한다. 한 단계의 "완료 기준"을 모두 만족해야 다음 단계로 넘어간다.
 > 단계 완료 시 git 커밋(메시지에 `[Phase N]` 포함).
 
-**[현재 작업] → Phase 2**
+**[현재 작업] → Phase 3**
 
 ---
 
-## Phase 1 — 설계 & 프로젝트 세팅
+## Phase 1 — 설계 & 프로젝트 세팅 ✅
 목표: 뼈대와 스키마 기반을 잡는다.
-- [ ] Spring Boot 프로젝트 생성 (Gradle, Java 21, 위 의존성)
-- [ ] `docker-compose.yml`로 로컬 PostgreSQL 기동
-- [ ] Flyway 연결, `V1__init.sql`에 DATA_MODEL.md의 전체 스키마 작성
-- [ ] p6spy 설정 (실행 SQL 콘솔 출력 확인)
-완료 기준: `./gradlew bootRun`이 뜨고, Flyway가 스키마를 생성하며, p6spy 로그가 찍힌다.
+- [x] Spring Boot 프로젝트 생성 (Gradle, Java 17, 의존성)
+- [x] `docker-compose.yml`로 로컬 PostgreSQL 기동
+- [x] Flyway 연결, `V1__init.sql`에 DATA_MODEL.md의 전체 스키마 작성
+- [x] p6spy 설정 (실행 SQL 콘솔 출력 확인)
+완료 기준: ~~`./gradlew bootRun`이 뜨고, Flyway가 스키마를 생성하며, p6spy 로그가 찍힌다.~~ ✅
 
-## Phase 2 — 기본 도메인 & 조회
+## Phase 2 — 기본 도메인 & 조회 ✅
 목표: 엔티티와 읽기 기능.
-- [ ] JPA 엔티티 매핑 (users, venues, seats, events, event_seats ...)
-- [ ] 회원가입/로그인 (Spring Security)
-- [ ] 공연 목록 / 공연 상세 / 좌석맵(잔여좌석) 조회 — **잔여좌석 쿼리는 native SQL로 작성**
-- [ ] 시드 데이터 (공연장·좌석·공연) 삽입 스크립트
-완료 기준: 좌석맵 화면에서 특정 공연의 좌석 상태가 보인다.
+- [x] JPA 엔티티 매핑 8개 + enum 3개 (모두 LAZY, @OneToMany 없음)
+- [x] 회원가입/로그인 (Spring Security + JWT stateless)
+- [x] 공연 목록 / 공연 상세 / 좌석맵(잔여좌석) 조회 — **좌석맵은 native SQL**
+- [x] 시드 데이터 `V2__seed_data.sql` (공연장 3개, 좌석 620개, 공연 5개)
+완료 기준: ~~좌석맵 화면에서 특정 공연의 좌석 상태가 보인다.~~ ✅
 
 ## Phase 3 — 예매 핵심 로직 (트랜잭션)
 목표: HOLD → 결제 → SOLD 흐름.
@@ -44,7 +44,7 @@
 목표: 발표용 증거 데이터 수집.
 - [ ] 대량 시드 데이터(좌석/예매 수만 건) 삽입
 - [ ] 핫패스 쿼리 `EXPLAIN ANALYZE` 측정 (인덱스 추가 전)
-- [ ] `V2__add_indexes.sql`로 인덱스 추가 후 재측정
+- [ ] `V3__add_indexes.sql`로 인덱스 추가 후 재측정 (V2는 시드 데이터로 사용됨)
 - [ ] before/after 결과를 `docs/evidence/`에 저장
 - [ ] k6로 예매 오픈 부하 테스트, 결과 표/그래프 저장
 완료 기준: 인덱스 전후 비교표와 부하테스트 결과가 파일로 남는다.

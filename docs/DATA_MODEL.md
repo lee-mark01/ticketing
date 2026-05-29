@@ -42,7 +42,8 @@
 - `event_seats` 부분 인덱스: `WHERE status = 'AVAILABLE'` — 예매 가능 좌석만 빠르게.
 - `reservations(expires_at)` — 만료된 HOLD 정리 배치용.
 - `users(email)` — 로그인 조회 (unique 제약과 함께).
-- 인덱스는 별도 마이그레이션(`V2__...`)으로 추가해, 추가 전/후 `EXPLAIN ANALYZE` 비교를 남긴다.
+- 인덱스는 별도 마이그레이션(`V3__add_indexes.sql`)으로 추가해, 추가 전/후 `EXPLAIN ANALYZE` 비교를 남긴다.
+  (V2는 시드 데이터에 사용됨)
 
 ## 5. 동시성 관련 설계
 - `event_seats.version`: JPA `@Version` 낙관적 락용.

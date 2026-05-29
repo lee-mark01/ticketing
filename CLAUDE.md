@@ -5,7 +5,7 @@
 핵심 시연 포인트: 인기 공연 예매 오픈(선착순) 시의 좌석 동시성 처리.
 
 ## 기술 스택
-- Java 21, Spring Boot 3.x, Gradle
+- Java 17, Spring Boot 3.4.1, Gradle 8.11.1
 - Spring Web, Spring Data JPA, Spring Security
 - PostgreSQL (로컬은 Docker, 배포는 Neon)
 - Flyway (스키마 마이그레이션)
@@ -31,7 +31,7 @@
 ## 명령어 (backend/ 디렉토리에서 실행)
 - 로컬 DB 기동: `cd backend && docker compose up -d`
 - 빌드: `cd backend && ./gradlew build`
-- 실행: `cd backend && ./gradlew bootRun`
+- 실행: `cd backend && source .env && ./gradlew bootRun`
 - 테스트: `cd backend && ./gradlew test`
 - 마이그레이션: `cd backend && ./gradlew flywayMigrate`
 - 부하 테스트: `k6 run load-test/booking-open.js`
