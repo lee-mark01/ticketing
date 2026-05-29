@@ -1,0 +1,5 @@
+package com.ticketing.booking.entity;
+
+public enum PaymentStatus {
+    PENDING, PAID, FAILED, REFUNDED
+}
