@@ -1,13 +1,23 @@
 package com.ticketing.event.repository;
 
 import com.ticketing.event.entity.EventSeat;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface EventSeatRepository extends JpaRepository<EventSeat, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT es FROM EventSeat es WHERE es.id IN :ids")
+    List<EventSeat> findAllByIdWithLock(@Param("ids") List<Long> ids);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT es FROM EventSeat es WHERE es.event.id = :eventId AND es.id IN :ids")
+    List<EventSeat> findAllByEventIdAndIdInWithLock(@Param("eventId") Long eventId, @Param("ids") List<Long> ids);
 
     @Query(value = """
             SELECT es.id        AS eventSeatId,

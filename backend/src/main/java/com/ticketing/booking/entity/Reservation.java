@@ -41,4 +41,38 @@ public class Reservation {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    public static Reservation create(User user, Event event, LocalDateTime expiresAt) {
+        Reservation r = new Reservation();
+        r.user = user;
+        r.event = event;
+        r.status = ReservationStatus.PENDING;
+        r.expiresAt = expiresAt;
+        return r;
+    }
+
+    public boolean isExpired() {
+        return this.expiresAt != null && LocalDateTime.now().isAfter(this.expiresAt);
+    }
+
+    public void confirm() {
+        if (this.status != ReservationStatus.PENDING) {
+            throw new IllegalStateException("PENDING 상태에서만 확정할 수 있습니다. 현재: " + this.status);
+        }
+        this.status = ReservationStatus.CONFIRMED;
+    }
+
+    public void cancel() {
+        if (this.status == ReservationStatus.CONFIRMED) {
+            throw new IllegalStateException("이미 확정된 예매는 이 방법으로 취소할 수 없습니다.");
+        }
+        this.status = ReservationStatus.CANCELLED;
+    }
+
+    public void expire() {
+        if (this.status != ReservationStatus.PENDING) {
+            throw new IllegalStateException("PENDING 상태에서만 만료할 수 있습니다. 현재: " + this.status);
+        }
+        this.status = ReservationStatus.EXPIRED;
+    }
 }

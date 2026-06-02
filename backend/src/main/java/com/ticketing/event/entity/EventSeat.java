@@ -33,4 +33,25 @@ public class EventSeat {
 
     @Version
     private int version;
+
+    public void hold() {
+        if (this.status != EventSeatStatus.AVAILABLE) {
+            throw new IllegalStateException("AVAILABLE 상태에서만 HOLD할 수 있습니다. 현재: " + this.status);
+        }
+        this.status = EventSeatStatus.HELD;
+    }
+
+    public void release() {
+        if (this.status != EventSeatStatus.HELD) {
+            throw new IllegalStateException("HELD 상태에서만 해제할 수 있습니다. 현재: " + this.status);
+        }
+        this.status = EventSeatStatus.AVAILABLE;
+    }
+
+    public void sell() {
+        if (this.status != EventSeatStatus.HELD) {
+            throw new IllegalStateException("HELD 상태에서만 판매할 수 있습니다. 현재: " + this.status);
+        }
+        this.status = EventSeatStatus.SOLD;
+    }
 }

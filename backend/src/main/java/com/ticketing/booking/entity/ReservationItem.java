@@ -23,4 +23,11 @@ public class ReservationItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_seat_id", nullable = false)
     private EventSeat eventSeat;
+
+    public static ReservationItem create(Reservation reservation, EventSeat eventSeat) {
+        ReservationItem item = new ReservationItem();
+        item.reservation = reservation;
+        item.eventSeat = eventSeat;
+        return item;
+    }
 }

@@ -33,4 +33,12 @@ public class Event {
 
     @Column(name = "available_seat_count", nullable = false)
     private int availableSeatCount;
+
+    public void decreaseAvailableSeatCount(int count) {
+        this.availableSeatCount -= count;
+    }
+
+    public void increaseAvailableSeatCount(int count) {
+        this.availableSeatCount += count;
+    }
 }

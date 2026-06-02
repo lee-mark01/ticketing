@@ -30,4 +30,13 @@ public class Payment {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    public static Payment create(Reservation reservation, int amount) {
+        Payment p = new Payment();
+        p.reservation = reservation;
+        p.amount = amount;
+        p.status = PaymentStatus.PAID;
+        p.paidAt = LocalDateTime.now();
+        return p;
+    }
 }
