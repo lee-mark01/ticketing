@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew build *)",
+      "Bash(./gradlew test *)",
+      "Bash(cat /mnt/c/Users/seung/workspace/ticketing/backend/build/test-results/test/*.xml)"
+    ]
+  }
+}

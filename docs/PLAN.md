@@ -3,7 +3,7 @@
 > 작업은 이 순서대로 진행한다. 한 단계의 "완료 기준"을 모두 만족해야 다음 단계로 넘어간다.
 > 단계 완료 시 git 커밋(메시지에 `[Phase N]` 포함).
 
-**[현재 작업] → Phase 3**
+**[현재 작업] → Phase 5**
 
 ---
 
@@ -23,22 +23,23 @@
 - [x] 시드 데이터 `V2__seed_data.sql` (공연장 3개, 좌석 620개, 공연 5개)
 완료 기준: ~~좌석맵 화면에서 특정 공연의 좌석 상태가 보인다.~~ ✅
 
-## Phase 3 — 예매 핵심 로직 (트랜잭션)
+## Phase 3 — 예매 핵심 로직 (트랜잭션) ✅
 목표: HOLD → 결제 → SOLD 흐름.
-- [ ] 좌석 HOLD API (status AVAILABLE→HELD, reservation PENDING 생성, expires_at 설정)
-- [ ] 결제 확정 API: `reservation→CONFIRMED` + `event_seats→SOLD` + `payment 생성`을
+- [x] 좌석 HOLD API (status AVAILABLE→HELD, reservation PENDING 생성, expires_at 설정)
+- [x] 결제 확정 API: `reservation→CONFIRMED` + `event_seats→SOLD` + `payment 생성`을
       **하나의 트랜잭션**으로 (`@Transactional`). 중간 실패 시 전체 롤백 확인.
-- [ ] 만료 HOLD 자동 해제 스케줄러
-완료 기준: 결제 실패를 일부러 던졌을 때 좌석이 AVAILABLE로 돌아오는 것을 테스트로 증명.
+- [x] 만료 HOLD 자동 해제 스케줄러
+완료 기준: ~~CONFIRM 실패 시 좌석이 HELD로 유지, payment 미생성, availableSeatCount 변화 없음을 7개 테스트로 증명.~~ ✅
 
-## Phase 4 — 동시성 컨트롤 (★ 핵심)
+## Phase 4 — 동시성 컨트롤 (★ 핵심) ✅
 목표: 같은 좌석 동시 요청 안전 처리 + 증명.
-- [ ] 락 없는 naive 버전으로 **중복판매 재현** (테스트로 oversell 발생 확인)
-- [ ] 비관적 락 버전: `SELECT ... FOR UPDATE`
-- [ ] 낙관적 락 버전: `@Version` + 충돌 시 재시도
-- [ ] 격리 수준 시연: READ COMMITTED의 lost update → SERIALIZABLE 비교
-- [ ] **락 없으면 실패 / 있으면 통과**하는 멀티스레드 통합 테스트
-완료 기준: 동시 N요청에서 좌석 1개가 정확히 1건만 판매됨을 테스트로 증명.
+- [x] 락 없는 naive 버전으로 **중복판매 재현** (ConcurrencyExperimentService + JdbcTemplate unsafe UPDATE)
+- [x] 비관적 락 버전: `SELECT ... FOR UPDATE` (정확히 1건 성공)
+- [x] 낙관적 락 버전: `@Version` + 충돌 감지 (정확히 1건 성공)
+- [x] 격리 수준 시연: READ COMMITTED lost update → SERIALIZABLE 비교 (SQL 스크립트)
+- [x] **락 없으면 실패 / 있으면 통과**하는 멀티스레드 통합 테스트 (deterministic 4개 통과)
+- [x] k6 부하 테스트 스크립트 작성 (smoke/hot_seat/seat_pool/spike)
+완료 기준: ~~동시 10요청에서 좌석 1개가 정확히 1건만 판매됨을 테스트로 증명. active reservation_item 기준 oversell 판정.~~ ✅
 
 ## Phase 5 — 인덱싱 & 측정
 목표: 발표용 증거 데이터 수집.

@@ -19,6 +19,9 @@ public interface EventSeatRepository extends JpaRepository<EventSeat, Long> {
     @Query("SELECT es FROM EventSeat es WHERE es.event.id = :eventId AND es.id IN :ids")
     List<EventSeat> findAllByEventIdAndIdInWithLock(@Param("eventId") Long eventId, @Param("ids") List<Long> ids);
 
+    @Query("SELECT es FROM EventSeat es WHERE es.event.id = :eventId AND es.id IN :ids")
+    List<EventSeat> findAllByEventIdAndIdIn(@Param("eventId") Long eventId, @Param("ids") List<Long> ids);
+
     @Query(value = """
             SELECT es.id        AS eventSeatId,
                    s.section     AS section,

@@ -61,6 +61,51 @@
 - 결정: application.yml에서 `${ENV_VAR}` 참조, 실제 값은 `.env` 파일(gitignore)에 `export` 형태로 보관.
 - 이유: 비밀번호 하드코딩 습관 방지. `.env.example`로 필요한 변수 안내.
 
+## [2026-06-03] availableSeatCount 갱신 시점: HOLD에서 감소
+- 맥락: `events.available_seat_count`를 HOLD 시점에 줄일지, CONFIRM 시점에 줄일지.
+- 결정: HOLD 성공 시 감소, CONFIRM 시 변화 없음, CANCEL/EXPIRE 시 증가.
+- 이유: availableSeatCount는 "현재 선택 가능한 좌석 수"를 의미. HELD 좌석은 다른 사용자가 선택할 수 없으므로 HOLD 시점에 감소해야 좌석맵 조회 결과가 정확하다.
+
+## [2026-06-03] HOLD 좌석 조회: eventId 조건 포함
+- 맥락: HOLD API에서 좌석을 조회할 때 seatIds만으로 조회할지, eventId도 조건에 포함할지.
+- 결정: `findAllByEventIdAndIdInWithLock(eventId, seatIds)` — eventId 조건 포함.
+- 이유: 다른 공연의 좌석 ID가 섞여 들어왔을 때 조회 결과 수 불일치로 자연스럽게 거부. 별도 검증 로직 없이 쿼리 단에서 방어.
+
+## [2026-06-03] CONFIRM 롤백 범위: HELD 유지, AVAILABLE 아님
+- 맥락: CONFIRM 트랜잭션 실패 시 좌석을 AVAILABLE로 돌릴지, HELD로 유지할지.
+- 결정: HELD 유지. AVAILABLE 복구는 사용자의 CANCEL 또는 스케줄러의 EXPIRE에서만.
+- 이유: HOLD와 CONFIRM은 별도 트랜잭션. CONFIRM 롤백은 CONFIRM 트랜잭션 내 변경만 되돌리므로, 이전 트랜잭션(HOLD)에서 커밋된 HELD 상태는 유지되는 것이 올바른 동작.
+
+## [2026-06-03] 만료 스케줄러: fixedRate 60초
+- 맥락: HOLD 만료를 어떻게 감지하고 처리할지.
+- 결정: `@Scheduled(fixedRate = 60_000)`으로 1분마다 만료 HOLD 일괄 처리.
+- 이유: HOLD 유효시간이 7분이므로 1분 간격이면 최대 1분 지연으로 충분. 실시간성이 중요하지 않고, DB 폴링이 단순해 구현/디버깅이 쉽다.
+
+## [2026-06-03] 운영 기본 락 전략: PESSIMISTIC (FOR UPDATE)
+- 맥락: 좌석 HOLD 동시 요청에서 어떤 락 전략을 운영 기본값으로 쓸지.
+- 결정: PESSIMISTIC (SELECT ... FOR UPDATE).
+- 이유: 좌석 예매는 경합이 강해 비관적 락이 가장 안전. NAIVE는 중복판매, OPTIMISTIC은 충돌 시 재시도 정책이 필요. deterministic 테스트와 k6 부하 테스트로 3가지 전략을 비교하되, 운영은 PESSIMISTIC 유지.
+
+## [2026-06-03] 동시성 실험 코드: 운영과 완전 분리
+- 맥락: NAIVE(unsafe) 구현을 어디에 둘지.
+- 결정: `ConcurrencyExperimentService` + `ExperimentController`(`experiment` profile 전용)로 분리. NAIVE는 JPA @Version을 우회하여 JdbcTemplate으로 직접 UPDATE.
+- 이유: 운영 `ReservationService`에 unsafe 코드가 혼입되면 안 됨. experiment profile이 아닌 환경에서는 실험 endpoint가 빈으로 등록되지 않아 접근 불가.
+
+## [2026-06-03] 동시성 테스트 방법론: deterministic + realistic 분리
+- 맥락: 동시성 테스트를 어떻게 설계할지.
+- 결정: CyclicBarrier/CountDownLatch로 critical interleaving을 재현하는 deterministic test + k6로 barrier 없이 HTTP 부하를 보내는 realistic load test로 분리.
+- 이유: startLatch만으로는 한 스레드가 먼저 끝나서 동시성 문제 재현이 안 될 수 있음. readBarrier로 모든 스레드가 조회 완료 후 동시에 UPDATE로 진입해야 critical interleaving 결정적 재현 가능. k6는 성능 합격 기준이 아니라 전략별 trade-off 비교 자료.
+
+## [2026-06-03] oversell 판정 기준: active reservation_item 중복 여부
+- 맥락: 중복판매를 어떻게 판정할지.
+- 결정: "성공 요청 수 > 1"이 아니라, 같은 event_seat_id에 active(PENDING/CONFIRMED) reservation_item이 2건 이상인지로 판정.
+- 이유: 성공 수만 보면 서로 다른 좌석에 대한 성공과 구별 못 함. DB 상태 기반 판정이 더 정확.
+
+## [2026-06-03] 다중 좌석 묶음 HOLD 테스트 (자동 배정 대신)
+- 맥락: "재고 N개, 동시 M명 → 정확히 N건 판매" 테스트를 어떻게 할지.
+- 결정: 현재 API가 사용자가 특정 seatIds를 선택하는 구조이므로, "좌석 3개 묶음을 10명이 동시 HOLD" 테스트로 변경.
+- 이유: 자동 배정 API가 없으므로 묶음 HOLD의 전체 성공/전체 실패 보장을 검증하는 것이 적합.
+
 ## [미결] 배포 방식 & HTTPS
 - 맥락: Vercel(HTTPS)에서 백엔드 호출 시 mixed content 문제. 백엔드도 HTTPS 필요.
 - 선택지: (1) PaaS(Koyeb/Render) — HTTPS 자동, nginx 불필요 (2) EC2 + nginx + Let's Encrypt
