@@ -1,0 +1,27 @@
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=2021.84..2027.05 rows=2084 width=24) (actual time=7.614..7.719 rows=2000 loops=1)
+   Sort Key: s.section, s.seat_row, s.seat_number
+   Sort Method: quicksort  Memory: 143kB
+   Buffers: shared hit=710 dirtied=16
+   ->  Hash Join  (cost=160.52..1906.96 rows=2084 width=24) (actual time=1.365..4.459 rows=2000 loops=1)
+         Hash Cond: (es.seat_id = s.id)
+         Buffers: shared hit=707 dirtied=16
+         ->  Bitmap Heap Scan on event_seats es  (cost=84.57..1825.53 rows=2084 width=26) (actual time=0.466..2.836 rows=2000 loops=1)
+               Recheck Cond: (event_id = 55)
+               Heap Blocks: exact=669
+               Buffers: shared hit=690 dirtied=16
+               ->  Bitmap Index Scan on event_seats_event_id_seat_id_key  (cost=0.00..84.05 rows=2084 width=0) (actual time=0.356..0.356 rows=2095 loops=1)
+                     Index Cond: (event_id = 55)
+                     Buffers: shared hit=21
+         ->  Hash  (cost=43.20..43.20 rows=2620 width=14) (actual time=0.856..0.858 rows=2620 loops=1)
+               Buckets: 4096  Batches: 1  Memory Usage: 155kB
+               Buffers: shared hit=17
+               ->  Seq Scan on seats s  (cost=0.00..43.20 rows=2620 width=14) (actual time=0.006..0.312 rows=2620 loops=1)
+                     Buffers: shared hit=17
+ Planning:
+   Buffers: shared hit=256 read=1
+ Planning Time: 1.422 ms
+ Execution Time: 7.974 ms
+(23 rows)
+

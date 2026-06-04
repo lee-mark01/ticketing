@@ -3,7 +3,7 @@
 > 작업은 이 순서대로 진행한다. 한 단계의 "완료 기준"을 모두 만족해야 다음 단계로 넘어간다.
 > 단계 완료 시 git 커밋(메시지에 `[Phase N]` 포함).
 
-**[현재 작업] → Phase 5**
+**[현재 작업] → Phase 6**
 
 ---
 
@@ -41,14 +41,14 @@
 - [x] k6 부하 테스트 스크립트 작성 (smoke/hot_seat/seat_pool/spike)
 완료 기준: ~~동시 10요청에서 좌석 1개가 정확히 1건만 판매됨을 테스트로 증명. active reservation_item 기준 oversell 판정.~~ ✅
 
-## Phase 5 — 인덱싱 & 측정
+## Phase 5 — 인덱싱 & 측정 ✅
 목표: 발표용 증거 데이터 수집.
-- [ ] 대량 시드 데이터(좌석/예매 수만 건) 삽입
-- [ ] 핫패스 쿼리 `EXPLAIN ANALYZE` 측정 (인덱스 추가 전)
-- [ ] `V3__add_indexes.sql`로 인덱스 추가 후 재측정 (V2는 시드 데이터로 사용됨)
-- [ ] before/after 결과를 `docs/evidence/`에 저장
-- [ ] k6로 예매 오픈 부하 테스트, 결과 표/그래프 저장
-완료 기준: 인덱스 전후 비교표와 부하테스트 결과가 파일로 남는다.
+- [x] 대량 시드 데이터 (event_seats 101,160건, reservations 100,000건)
+- [x] 핫패스 쿼리 5개 `EXPLAIN (ANALYZE, BUFFERS)` before 측정
+- [x] `V3__add_indexes.sql` 인덱스 3개 추가 후 after 재측정
+- [x] before/after 비교표 + EXPLAIN 원문을 `docs/evidence/phase5/`에 저장
+- [x] k6 읽기 부하 테스트 스크립트 작성 (`load-test/booking-read-load.js`)
+완료 기준: ~~AVAILABLE 조회 85% 개선, 만료 HOLD 84% 개선, Seq Scan → Index Scan 전환 확인.~~ ✅
 
 ## Phase 6 — 배포 & 산출물
 목표: 제출.

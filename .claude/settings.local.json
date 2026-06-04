@@ -3,7 +3,20 @@
     "allow": [
       "Bash(./gradlew build *)",
       "Bash(./gradlew test *)",
-      "Bash(cat /mnt/c/Users/seung/workspace/ticketing/backend/build/test-results/test/*.xml)"
+      "Bash(cat /mnt/c/Users/seung/workspace/ticketing/backend/build/test-results/test/*.xml)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose up *)",
+      "Bash(docker start *)",
+      "Bash(docker exec ticketing-db *)",
+      "Bash(docker exec *)",
+      "Bash(tee /tmp/before-available.txt)",
+      "Bash(tee /tmp/before-expired-hold.txt)",
+      "Bash(tee /tmp/before-my-reservations.txt)",
+      "Bash(tee /tmp/before-hold-forupdate.txt)",
+      "Bash(tee /tmp/after-available.txt)",
+      "Bash(tee /tmp/after-expired-hold.txt)",
+      "Bash(tee /tmp/after-my-reservations.txt)",
+      "Bash(tee /tmp/after-hold-forupdate.txt)"
     ]
   }
 }

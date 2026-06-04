@@ -1,0 +1,15 @@
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on reservations  (cost=57.47..1045.77 rows=4017 width=49) (actual time=1.165..4.370 rows=19900 loops=1)
+   Recheck Cond: (((status)::text = 'PENDING'::text) AND (expires_at < now()))
+   Heap Blocks: exact=917
+   Buffers: shared hit=917 read=18
+   ->  Bitmap Index Scan on idx_reservations_status_expires  (cost=0.00..56.46 rows=4017 width=0) (actual time=1.049..1.050 rows=19900 loops=1)
+         Index Cond: (((status)::text = 'PENDING'::text) AND (expires_at < now()))
+         Buffers: shared read=18
+ Planning:
+   Buffers: shared hit=116 read=2
+ Planning Time: 0.671 ms
+ Execution Time: 5.341 ms
+(11 rows)
+

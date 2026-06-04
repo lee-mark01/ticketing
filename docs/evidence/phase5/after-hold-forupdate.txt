@@ -1,0 +1,27 @@
+                                                                                        QUERY PLAN                                                                                         
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows  (cost=11.30..36.26 rows=1 width=76) (actual time=0.149..0.183 rows=3 loops=1)
+   Buffers: shared hit=21 dirtied=1
+   ->  Nested Loop  (cost=11.30..36.25 rows=1 width=76) (actual time=0.115..0.143 rows=3 loops=1)
+         Buffers: shared hit=18
+         ->  HashAggregate  (cost=10.88..10.91 rows=3 width=40) (actual time=0.092..0.094 rows=3 loops=1)
+               Group Key: "ANY_subquery".id
+               Batches: 1  Memory Usage: 24kB
+               Buffers: shared hit=6
+               ->  Subquery Scan on "ANY_subquery"  (cost=0.29..10.87 rows=3 width=40) (actual time=0.082..0.085 rows=3 loops=1)
+                     Buffers: shared hit=6
+                     ->  Limit  (cost=0.29..10.84 rows=3 width=8) (actual time=0.058..0.060 rows=3 loops=1)
+                           Buffers: shared hit=6
+                           ->  Index Scan using idx_event_seats_event_status on event_seats event_seats_1  (cost=0.29..1452.60 rows=413 width=8) (actual time=0.056..0.058 rows=3 loops=1)
+                                 Index Cond: ((event_id = 55) AND ((status)::text = 'AVAILABLE'::text))
+                                 Buffers: shared hit=6
+         ->  Index Scan using event_seats_pkey on event_seats  (cost=0.42..8.44 rows=1 width=44) (actual time=0.015..0.015 rows=1 loops=3)
+               Index Cond: (id = "ANY_subquery".id)
+               Filter: (event_id = 55)
+               Buffers: shared hit=12
+ Planning:
+   Buffers: shared hit=224
+ Planning Time: 0.975 ms
+ Execution Time: 0.286 ms
+(23 rows)
+

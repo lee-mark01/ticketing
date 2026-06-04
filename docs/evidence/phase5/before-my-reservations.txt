@@ -1,0 +1,54 @@
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=7447.70..7447.75 rows=20 width=82) (actual time=61.561..61.572 rows=20 loops=1)
+   Buffers: shared hit=21659
+   ->  Sort  (cost=7447.70..7460.14 rows=4977 width=82) (actual time=61.558..61.566 rows=20 loops=1)
+         Sort Key: r.created_at DESC
+         Sort Method: top-N heapsort  Memory: 30kB
+         Buffers: shared hit=21659
+         ->  GroupAggregate  (cost=7141.07..7315.26 rows=4977 width=82) (actual time=54.349..59.684 rows=5019 loops=1)
+               Group Key: r.id, e.title
+               Buffers: shared hit=21656
+               ->  Sort  (cost=7141.07..7153.51 rows=4977 width=52) (actual time=54.316..54.660 rows=5019 loops=1)
+                     Sort Key: r.id, e.title, s.section, s.seat_row, s.seat_number
+                     Sort Method: quicksort  Memory: 585kB
+                     Buffers: shared hit=21656
+                     ->  Hash Left Join  (cost=2309.82..6835.45 rows=4977 width=52) (actual time=11.233..51.828 rows=5019 loops=1)
+                           Hash Cond: (es.seat_id = s.id)
+                           Buffers: shared hit=21650
+                           ->  Nested Loop Left Join  (cost=2233.87..6746.41 rows=4977 width=54) (actual time=10.081..49.272 rows=5019 loops=1)
+                                 Buffers: shared hit=21633
+                                 ->  Hash Join  (cost=2233.45..4147.03 rows=4977 width=50) (actual time=10.035..39.024 rows=5019 loops=1)
+                                       Hash Cond: (r.event_id = e.id)
+                                       Buffers: shared hit=1557
+                                       ->  Hash Right Join  (cost=2230.21..4129.72 rows=4977 width=41) (actual time=9.979..37.690 rows=5019 loops=1)
+                                             Hash Cond: (ri.reservation_id = r.id)
+                                             Buffers: shared hit=1555
+                                             ->  Seq Scan on reservation_items ri  (cost=0.00..1637.00 rows=100000 width=16) (actual time=0.011..11.028 rows=100000 loops=1)
+                                                   Buffers: shared hit=637
+                                             ->  Hash  (cost=2168.00..2168.00 rows=4977 width=33) (actual time=9.891..9.892 rows=5019 loops=1)
+                                                   Buckets: 8192  Batches: 1  Memory Usage: 404kB
+                                                   Buffers: shared hit=918
+                                                   ->  Seq Scan on reservations r  (cost=0.00..2168.00 rows=4977 width=33) (actual time=0.006..8.724 rows=5019 loops=1)
+                                                         Filter: (user_id = 2)
+                                                         Rows Removed by Filter: 94981
+                                                         Buffers: shared hit=918
+                                       ->  Hash  (cost=2.55..2.55 rows=55 width=25) (actual time=0.033..0.033 rows=55 loops=1)
+                                             Buckets: 1024  Batches: 1  Memory Usage: 12kB
+                                             Buffers: shared hit=2
+                                             ->  Seq Scan on events e  (cost=0.00..2.55 rows=55 width=25) (actual time=0.008..0.015 rows=55 loops=1)
+                                                   Buffers: shared hit=2
+                                 ->  Index Scan using event_seats_pkey on event_seats es  (cost=0.42..0.52 rows=1 width=20) (actual time=0.002..0.002 rows=1 loops=5019)
+                                       Index Cond: (id = ri.event_seat_id)
+                                       Buffers: shared hit=20076
+                           ->  Hash  (cost=43.20..43.20 rows=2620 width=14) (actual time=1.108..1.109 rows=2620 loops=1)
+                                 Buckets: 4096  Batches: 1  Memory Usage: 155kB
+                                 Buffers: shared hit=17
+                                 ->  Seq Scan on seats s  (cost=0.00..43.20 rows=2620 width=14) (actual time=0.045..0.552 rows=2620 loops=1)
+                                       Buffers: shared hit=17
+ Planning:
+   Buffers: shared hit=330 read=1 dirtied=1
+ Planning Time: 2.642 ms
+ Execution Time: 61.904 ms
+(50 rows)
+

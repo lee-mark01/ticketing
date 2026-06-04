@@ -1,0 +1,17 @@
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on event_seats es  (cost=84.16..1830.33 rows=435 width=18) (actual time=0.422..1.825 rows=100 loops=1)
+   Recheck Cond: (event_id = 55)
+   Filter: ((status)::text = 'AVAILABLE'::text)
+   Rows Removed by Filter: 1900
+   Heap Blocks: exact=669
+   Buffers: shared hit=690
+   ->  Bitmap Index Scan on event_seats_event_id_seat_id_key  (cost=0.00..84.05 rows=2084 width=0) (actual time=0.343..0.343 rows=2095 loops=1)
+         Index Cond: (event_id = 55)
+         Buffers: shared hit=21
+ Planning:
+   Buffers: shared hit=93
+ Planning Time: 0.387 ms
+ Execution Time: 1.890 ms
+(13 rows)
+

@@ -106,6 +106,21 @@
 - 결정: 현재 API가 사용자가 특정 seatIds를 선택하는 구조이므로, "좌석 3개 묶음을 10명이 동시 HOLD" 테스트로 변경.
 - 이유: 자동 배정 API가 없으므로 묶음 HOLD의 전체 성공/전체 실패 보장을 검증하는 것이 적합.
 
+## [2026-06-04] 대량 데이터는 Flyway 아닌 별도 seed script로 분리
+- 맥락: Phase 5 측정용 대량 데이터(100,000건)를 어떻게 넣을지.
+- 결정: `scripts/seed-large-data.sql`로 분리. V2는 기본 데모 데이터로 유지.
+- 이유: 측정용 데이터를 Flyway에 넣으면 운영/배포 환경에도 적용됨. 측정과 스키마 마이그레이션은 분리.
+
+## [2026-06-04] 인덱스는 핫패스 쿼리 기준 최소 3개
+- 맥락: 어떤 인덱스를 추가할지.
+- 결정: `event_seats(event_id, status)`, `reservations(status, expires_at)`, `reservations(user_id, created_at DESC)` 3개.
+- 이유: EXPLAIN ANALYZE 결과 각각 85%, 84%, 24% 성능 개선 확인. HOLD FOR UPDATE는 PK로 충분(negative control).
+
+## [2026-06-04] available_seat_count는 COUNT 회피용 캐시 컬럼 유지
+- 맥락: 잔여 좌석 수를 매번 COUNT할지, 캐시 컬럼으로 관리할지.
+- 결정: 비정규화 캐시 컬럼 유지. HOLD/CANCEL/EXPIRE 시 증감.
+- 이유: event_seats 100,000건 기준 COUNT는 비용이 큼. 캐시 컬럼으로 O(1) 조회. trade-off: HOLD/CANCEL 시 추가 UPDATE 1회.
+
 ## [미결] 배포 방식 & HTTPS
 - 맥락: Vercel(HTTPS)에서 백엔드 호출 시 mixed content 문제. 백엔드도 HTTPS 필요.
 - 선택지: (1) PaaS(Koyeb/Render) — HTTPS 자동, nginx 불필요 (2) EC2 + nginx + Let's Encrypt

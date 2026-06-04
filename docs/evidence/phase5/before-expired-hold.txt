@@ -1,0 +1,12 @@
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Seq Scan on reservations  (cost=0.00..2668.00 rows=3926 width=49) (actual time=0.040..32.905 rows=19900 loops=1)
+   Filter: (((status)::text = 'PENDING'::text) AND (expires_at < now()))
+   Rows Removed by Filter: 80100
+   Buffers: shared hit=918 dirtied=91
+ Planning:
+   Buffers: shared hit=75
+ Planning Time: 0.396 ms
+ Execution Time: 33.880 ms
+(8 rows)
+
