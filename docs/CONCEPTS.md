@@ -20,23 +20,25 @@
 ## ③ 인덱싱
 - 구현 위치: `V3__add_indexes.sql`, native 좌석맵 쿼리 (`EventSeatRepository.findSeatMapByEventId`)
 - 증거물:
-  - [ ] 핫패스 쿼리의 `EXPLAIN ANALYZE` **인덱스 추가 전/후 비교** (실행시간·스캔방식)
-  - [ ] 복합 인덱스 / 부분 인덱스 사용 사례 각 1개
+  - [x] 핫패스 쿼리 5개의 `EXPLAIN ANALYZE` **인덱스 추가 전/후 비교** → `docs/evidence/phase5-indexing.md`
+  - [x] 복합 인덱스 사용 사례: `event_seats(event_id, status)` — AVAILABLE 조회 85% 개선
+  - [ ] EXPLAIN 원문: `docs/evidence/phase5/before-*.txt`, `after-*.txt`
 
 ## ④ 트랜잭션
-- 구현 위치: 결제 확정 서비스 (`@Transactional`)
+- 구현 위치: `ReservationService.confirmReservation()` (`@Transactional`)
 - 증거물:
-  - [ ] 예매·좌석상태·결제기록이 원자적으로 처리되는 코드
-  - [ ] **중간 실패 시 전체 롤백**을 증명하는 테스트 결과
+  - [x] 예매·좌석상태·결제기록이 원자적으로 처리되는 코드 → `ReservationService.java`
+  - [x] **중간 실패 시 전체 롤백**을 증명하는 테스트 7개 → `docs/evidence/phase3-transaction.md`
+  - [x] CONFIRM 실패 시 좌석 HELD 유지, payment 미생성, availableSeatCount 변화 없음 검증
 
 ## ⑤ 동시성 컨트롤 (★ 발표 클라이맥스)
-- 구현 위치: 예매 확정 경로 (naive / 비관적 락 / 낙관적 락 3종)
+- 구현 위치: `ConcurrencyExperimentService` (naive / 비관적 락 / 낙관적 락 3종)
 - 증거물:
-  - [ ] 락 없을 때 **중복판매 발생** 재현 결과
-  - [ ] 비관적 락(`FOR UPDATE`) vs 낙관적 락(`@Version`) 비교
-  - [ ] 격리 수준(READ COMMITTED vs SERIALIZABLE) 동작 차이
-  - [ ] k6 부하테스트: "재고 N개에 동시요청 M건 → 정확히 N건만 판매" 그래프
-  - [ ] 락 제거 시 실패 / 적용 시 통과하는 멀티스레드 테스트
+  - [x] 락 없을 때 **중복판매 발생** 재현 → `ConcurrencyTest.naive_oversell` (active reservation_item ≥ 2)
+  - [x] 비관적 락(`FOR UPDATE`) vs 낙관적 락(`@Version`) 비교 → `docs/evidence/phase4-concurrency.md`
+  - [x] 격리 수준(READ COMMITTED vs SERIALIZABLE) 동작 차이 → `docs/evidence/phase4-isolation-demo.sql`
+  - [ ] k6 부하테스트 결과 (스크립트 작성 완료, 실행 예정) → `load-test/booking-concurrency.js`
+  - [x] 락 제거 시 실패 / 적용 시 통과하는 멀티스레드 테스트 → `ConcurrencyTest` 4개
 
 ## 보너스 (있으면 가산점)
 - [ ] N+1 쿼리 발견 → fetch join 으로 개선한 before/after

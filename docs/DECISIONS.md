@@ -121,7 +121,7 @@
 - 결정: 비정규화 캐시 컬럼 유지. HOLD/CANCEL/EXPIRE 시 증감.
 - 이유: event_seats 100,000건 기준 COUNT는 비용이 큼. 캐시 컬럼으로 O(1) 조회. trade-off: HOLD/CANCEL 시 추가 UPDATE 1회.
 
-## [미결] 배포 방식 & HTTPS
-- 맥락: Vercel(HTTPS)에서 백엔드 호출 시 mixed content 문제. 백엔드도 HTTPS 필요.
-- 선택지: (1) PaaS(Koyeb/Render) — HTTPS 자동, nginx 불필요 (2) EC2 + nginx + Let's Encrypt
-- 결정: Phase 6에서 확정. 지금은 로컬 HTTP로 개발.
+## [2026-06-05] 배포 방식: Neon + Render + Vercel
+- 맥락: Vercel(HTTPS)에서 백엔드 호출 시 mixed content 문제. 백엔드도 HTTPS 필요. Koyeb은 Pro 결제 필요하여 제외.
+- 결정: Neon(DB) + Render Free Web Service(Spring Boot) + Vercel(Next.js). HTTPS 자동.
+- 이유: Render 무료 티어는 15분 미사용 시 spin down → 첫 접속 30~60초 지연 발생. 발표/시연 전 워밍업 필요. CORS는 FRONTEND_URL 환경변수 기반. experiment endpoint는 prod에서 비활성.

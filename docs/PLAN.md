@@ -52,8 +52,10 @@
 
 ## Phase 6 — 배포 & 산출물
 목표: 제출.
-- [ ] 배포 방식 확정 (PaaS vs EC2+nginx). HTTPS 필수 — `DECISIONS.md [미결]` 참고.
-- [ ] DB + 앱 배포, 라이브 URL 확보
-- [ ] README 정리 (소개, ERD, 실행법, 라이브 URL, 동시성 설명)
-- [ ] PPT 초안 생성 (CONCEPTS.md 증거물 기반)
-완료 기준: 외부에서 접속 가능한 URL + README + PPT.
+- [x] 배포 방식 확정: Neon(DB) + Koyeb(API) + Vercel(Frontend). HTTPS 자동.
+- [x] 백엔드: CORS(FRONTEND_URL 환경변수), Health endpoint, Dockerfile, V4 시연사용자
+- [x] 프론트엔드: Next.js MVP 5페이지 (로그인, 공연목록, 좌석맵, 예매확인, 내예매)
+- [x] README.md 정리 (소개, 기술스택, 실행법, 동시성 비교, 프로젝트 구조)
+- [x] 발표 구조 초안 12장 (`docs/presentation-outline.md`)
+- [ ] Neon + Koyeb + Vercel 실제 배포, 라이브 URL 확보
+완료 기준: 외부에서 접속 가능한 URL + README + 발표 초안.
