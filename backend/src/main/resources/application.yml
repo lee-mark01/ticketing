@@ -17,6 +17,9 @@ jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 3600000
 
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
 decorator:
   datasource:
     p6spy:
