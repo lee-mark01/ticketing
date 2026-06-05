@@ -5,10 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { getEvent, getSeats, holdSeats } from "@/lib/api";
 import type { EventDetailResponse, SeatDto } from "@/lib/types";
 
-const STATUS_COLOR: Record<string, string> = {
-  AVAILABLE: "bg-green-500 hover:bg-green-600 cursor-pointer",
-  HELD: "bg-yellow-400",
-  SOLD: "bg-red-400",
+const STATUS_STYLE: Record<string, string> = {
+  AVAILABLE: "bg-emerald-500/80 hover:bg-emerald-400 cursor-pointer",
+  HELD: "bg-amber-500/60 cursor-not-allowed",
+  SOLD: "bg-slate-600/60 cursor-not-allowed",
 };
 
 export default function EventDetailPage() {
@@ -58,14 +58,12 @@ export default function EventDetailPage() {
     }
   }
 
-  // 구역별 그룹핑
   const sections = seats.reduce<Record<string, SeatDto[]>>((acc, seat) => {
     if (!acc[seat.section]) acc[seat.section] = [];
     acc[seat.section].push(seat);
     return acc;
   }, {});
 
-  // 구역 내 열별 그룹핑
   function groupByRow(sectionSeats: SeatDto[]) {
     const rows: Record<string, SeatDto[]> = {};
     for (const s of sectionSeats) {
@@ -75,101 +73,173 @@ export default function EventDetailPage() {
     return Object.entries(rows).sort(([a], [b]) => a.localeCompare(b));
   }
 
-  const totalPrice = seats
-    .filter((s) => selected.has(s.eventSeatId))
-    .reduce((sum, s) => sum + s.price, 0);
+  const selectedSeats = seats.filter((s) => selected.has(s.eventSeatId));
+  const totalPrice = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
-  if (error && !event) return <p className="text-red-600">{error}</p>;
-  if (!event) return <p className="text-gray-500">로딩 중...</p>;
+  if (error && !event)
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-red-400">{error}</p>
+      </div>
+    );
+  if (!event)
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <div className="flex items-center gap-3" style={{ color: "var(--text-muted)" }}>
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          로딩 중...
+        </div>
+      </div>
+    );
 
   return (
-    <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{event.title}</h1>
-        <p className="text-gray-600">
-          {event.venue.name} · {new Date(event.startsAt).toLocaleDateString("ko-KR", {
-            year: "numeric", month: "long", day: "numeric",
-            hour: "2-digit", minute: "2-digit",
-          })}
-        </p>
-        <p className="text-sm text-gray-500 mt-1">잔여 {event.availableSeatCount}석</p>
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left: Seat map */}
+      <div className="flex-1 min-w-0">
+        {/* Event header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight mb-1">{event.title}</h1>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {event.venue.name} &middot;{" "}
+            {new Date(event.startsAt).toLocaleDateString("ko-KR", {
+              year: "numeric", month: "long", day: "numeric",
+              hour: "2-digit", minute: "2-digit",
+            })}
+          </p>
+        </div>
+
+        {/* Stage indicator */}
+        <div className="mb-6">
+          <div className="mx-auto w-48 py-2 rounded-t-2xl text-center text-xs font-semibold tracking-widest uppercase"
+               style={{ background: "var(--border)", color: "var(--text-muted)" }}>
+            STAGE
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-4 mb-5 text-xs" style={{ color: "var(--text-secondary)" }}>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3.5 h-3.5 rounded bg-emerald-500/80" /> 선택 가능
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3.5 h-3.5 rounded bg-amber-500/60" /> 선점됨
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3.5 h-3.5 rounded bg-slate-600/60" /> 판매됨
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3.5 h-3.5 rounded bg-blue-500 ring-2 ring-blue-400/50" /> 내 선택
+          </span>
+        </div>
+
+        {/* Sections */}
+        <div className="space-y-4">
+          {Object.entries(sections)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([section, sectionSeats]) => (
+              <div key={section} className="rounded-xl p-4"
+                   style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {section}구역
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: "rgba(59,130,246,0.12)", color: "var(--accent)" }}>
+                    {sectionSeats[0]?.price.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {groupByRow(sectionSeats).map(([row, rowSeats]) => (
+                    <div key={row} className="flex items-center gap-[3px]">
+                      <span className="w-5 text-[10px] text-right shrink-0" style={{ color: "var(--text-muted)" }}>
+                        {row}
+                      </span>
+                      {rowSeats
+                        .sort((a, b) => Number(a.number) - Number(b.number))
+                        .map((seat) => {
+                          const isSelected = selected.has(seat.eventSeatId);
+                          return (
+                            <button
+                              key={seat.eventSeatId}
+                              onClick={() => toggleSeat(seat)}
+                              disabled={seat.status !== "AVAILABLE"}
+                              title={`${section}-${row}-${seat.number} (${seat.status})`}
+                              className={`w-6 h-6 rounded text-[9px] font-medium transition-all duration-150 ${
+                                isSelected
+                                  ? "bg-blue-500 ring-2 ring-blue-400/50 text-white scale-110"
+                                  : STATUS_STYLE[seat.status] || "bg-slate-700"
+                              } disabled:cursor-not-allowed`}
+                              style={!isSelected && seat.status === "AVAILABLE" ? { color: "rgba(255,255,255,0.8)" } : { color: "rgba(255,255,255,0.4)" }}
+                            >
+                              {seat.number}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
       </div>
 
-      {/* 범례 */}
-      <div className="flex gap-4 mb-4 text-xs">
-        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-green-500 inline-block" /> AVAILABLE</span>
-        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-yellow-400 inline-block" /> HELD</span>
-        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-red-400 inline-block" /> SOLD</span>
-        <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-blue-500 inline-block" /> 내 선택</span>
-      </div>
+      {/* Right: Selection panel */}
+      <div className="lg:w-80 shrink-0">
+        <div className="lg:sticky lg:top-20 rounded-xl p-5"
+             style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+          <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+            선택한 좌석
+          </h3>
 
-      {/* 좌석맵 */}
-      <div className="space-y-6 mb-6">
-        {Object.entries(sections)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([section, sectionSeats]) => (
-            <div key={section} className="bg-white border rounded-lg p-4">
-              <h3 className="font-semibold mb-2 text-sm text-gray-700">
-                {section}구역 — {sectionSeats[0]?.price.toLocaleString()}원
-              </h3>
-              <div className="space-y-1">
-                {groupByRow(sectionSeats).map(([row, rowSeats]) => (
-                  <div key={row} className="flex items-center gap-1">
-                    <span className="w-6 text-xs text-gray-400 text-right mr-1">{row}</span>
-                    {rowSeats
-                      .sort((a, b) => Number(a.number) - Number(b.number))
-                      .map((seat) => {
-                        const isSelected = selected.has(seat.eventSeatId);
-                        return (
-                          <button
-                            key={seat.eventSeatId}
-                            onClick={() => toggleSeat(seat)}
-                            disabled={seat.status !== "AVAILABLE"}
-                            title={`${section}-${row}-${seat.number} (${seat.status})`}
-                            className={`w-7 h-7 rounded text-[10px] text-white font-medium transition-colors ${
-                              isSelected
-                                ? "bg-blue-500 ring-2 ring-blue-300"
-                                : STATUS_COLOR[seat.status] || "bg-gray-300"
-                            } disabled:cursor-not-allowed`}
-                          >
-                            {seat.number}
-                          </button>
-                        );
-                      })}
+          {selectedSeats.length === 0 ? (
+            <p className="text-sm py-8 text-center" style={{ color: "var(--text-muted)" }}>
+              좌석을 선택해주세요
+            </p>
+          ) : (
+            <>
+              <div className="space-y-2 mb-4">
+                {selectedSeats.map((s) => (
+                  <div key={s.eventSeatId}
+                       className="flex items-center justify-between text-sm py-2 px-3 rounded-lg"
+                       style={{ background: "rgba(59,130,246,0.08)" }}>
+                    <span style={{ color: "var(--text-primary)" }}>
+                      {s.section}-{s.row}-{s.number}
+                    </span>
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {s.price.toLocaleString()}원
+                    </span>
                   </div>
                 ))}
               </div>
-            </div>
-          ))}
-      </div>
 
-      {/* 선택 패널 */}
-      {selected.size > 0 && (
-        <div className="sticky bottom-0 bg-white border-t p-4 shadow-lg rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">
-                {selected.size}석 선택 ·{" "}
-                <span className="font-semibold">{totalPrice.toLocaleString()}원</span>
-              </p>
-              <p className="text-xs text-gray-400">
-                {seats
-                  .filter((s) => selected.has(s.eventSeatId))
-                  .map((s) => `${s.section}-${s.row}-${s.number}`)
-                  .join(", ")}
-              </p>
-            </div>
-            <button
-              onClick={handleHold}
-              disabled={holding}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {holding ? "선점 중..." : "좌석 선점"}
-            </button>
-          </div>
-          {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+              <div className="flex items-center justify-between py-3 mb-4"
+                   style={{ borderTop: "1px solid var(--border)" }}>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>합계</span>
+                <span className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                  {totalPrice.toLocaleString()}원
+                </span>
+              </div>
+            </>
+          )}
+
+          {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+
+          <button
+            onClick={handleHold}
+            disabled={selected.size === 0 || holding}
+            className="w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25"
+            style={{
+              background: selected.size > 0 ? "var(--accent)" : "var(--border)",
+              color: "#fff",
+            }}
+          >
+            {holding ? "선점 중..." : selected.size > 0 ? `${selected.size}석 선점하기` : "좌석을 선택하세요"}
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
