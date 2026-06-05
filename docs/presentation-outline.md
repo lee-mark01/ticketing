@@ -147,6 +147,8 @@
 
 - Neon: 무료 PostgreSQL, Flyway V1~V4 자동 적용
 - Render: Spring Boot Docker, prod profile (experiment endpoint 비활성). 무료 티어 spin down 주의.
+- Frontend URL: https://ticketing-wine-three.vercel.app
+- Backend URL: https://ticketing-api-caty.onrender.com
 - Vercel: Next.js, NEXT_PUBLIC_API_URL로 백엔드 연결
 - 라이브 URL: (배포 후 기재)
 

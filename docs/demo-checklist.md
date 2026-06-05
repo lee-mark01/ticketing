@@ -13,8 +13,8 @@
 ```
 
 ### 시연 URL
-- 프론트: `(Vercel URL — 배포 후 기재)`
-- 백엔드: `(Render URL — 배포 후 기재)`
+- 프론트: https://ticketing-wine-three.vercel.app
+- 백엔드: https://ticketing-api-caty.onrender.com
 - 시연용 계정: `demo@ticketing.com` / `password123`
 
 시연 흐름은 아래 "시연 흐름 (클릭 순서)" 동일.

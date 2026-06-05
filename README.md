@@ -15,6 +15,16 @@
 | 부하 테스트 | k6 |
 | 배포 | Neon (DB) + Render (API) + Vercel (Frontend) |
 
+## 라이브 URL
+
+| 구분 | URL |
+|------|-----|
+| Frontend | https://ticketing-wine-three.vercel.app |
+| Backend API | https://ticketing-api-caty.onrender.com |
+| Health Check | https://ticketing-api-caty.onrender.com/health |
+
+> Render 무료 티어는 15분 미사용 시 spin down됩니다. 첫 접속 시 30~60초 지연될 수 있습니다.
+
 ## 핵심 시연 흐름
 
 1. 로그인 → 2. 공연 목록 → 3. 좌석맵(구역별 색상) → 4. 좌석 HOLD → 5. 결제 CONFIRM → 6. 내 예매 확인

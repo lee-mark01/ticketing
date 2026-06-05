@@ -16,7 +16,10 @@
       "Bash(tee /tmp/after-available.txt)",
       "Bash(tee /tmp/after-expired-hold.txt)",
       "Bash(tee /tmp/after-my-reservations.txt)",
-      "Bash(tee /tmp/after-hold-forupdate.txt)"
+      "Bash(tee /tmp/after-hold-forupdate.txt)",
+      "Bash(./gradlew -q dependencies --configuration runtimeClasspath)",
+      "Bash(npm run *)",
+      "WebFetch(domain:ticketing-wine-three.vercel.app)"
     ]
   }
 }
