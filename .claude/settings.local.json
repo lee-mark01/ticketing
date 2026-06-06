@@ -19,7 +19,8 @@
       "Bash(tee /tmp/after-hold-forupdate.txt)",
       "Bash(./gradlew -q dependencies --configuration runtimeClasspath)",
       "Bash(npm run *)",
-      "WebFetch(domain:ticketing-wine-three.vercel.app)"
+      "WebFetch(domain:ticketing-wine-three.vercel.app)",
+      "Bash(ls *)"
     ]
   }
 }
