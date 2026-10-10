@@ -86,8 +86,12 @@ public class ReservationService {
                     "SEAT_NOT_AVAILABLE", "이미 선점된 좌석입니다.");
         }
 
-        // 7. availableSeatCount 감소
-        event.decreaseAvailableSeatCount(seatIds.size());
+        // 7. availableSeatCount 원자적 감소
+        int updatedRows = eventRepository.decreaseAvailableSeatCount(eventId, seatIds.size());
+        if (updatedRows == 0) {
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "INSUFFICIENT_AVAILABLE_SEATS", "잔여 좌석 수가 부족합니다.");
+        }
 
         // 8. Reservation 생성
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(HOLD_MINUTES);

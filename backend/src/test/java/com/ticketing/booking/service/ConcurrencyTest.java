@@ -50,6 +50,7 @@ class ConcurrencyTest {
     }
 
     @Autowired ConcurrencyExperimentService experimentService;
+    @Autowired ReservationService reservationService;
     @Autowired EventSeatRepository eventSeatRepository;
     @Autowired UserRepository userRepository;
     @Autowired JdbcTemplate jdbcTemplate;
@@ -282,6 +283,50 @@ class ConcurrencyTest {
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(activeReservations).isEqualTo(1);
         assertThat(totalActiveItems).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("서로 다른 좌석 10개 동시 HOLD: availableSeatCount는 실제 AVAILABLE 좌석 수와 일치")
+    void concurrentDifferentSeats_keepsAvailableSeatCountConsistent() throws InterruptedException {
+        List<Long> seatIds = findAvailableSeatIds(THREAD_COUNT);
+        CyclicBarrier startBarrier = new CyclicBarrier(THREAD_COUNT);
+        AtomicInteger successCount = new AtomicInteger();
+        List<String> failReasons = new CopyOnWriteArrayList<>();
+        CountDownLatch doneLatch = new CountDownLatch(THREAD_COUNT);
+        ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+
+        for (int i = 0; i < THREAD_COUNT; i++) {
+            final Long seatId = seatIds.get(i);
+            final Long userId = userIds.get(i);
+            executor.submit(() -> {
+                try {
+                    startBarrier.await(10, TimeUnit.SECONDS);
+                    reservationService.holdSeats(EVENT_ID, List.of(seatId), userId);
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    failReasons.add(e.getClass().getSimpleName() + ": " + e.getMessage());
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        assertThat(doneLatch.await(30, TimeUnit.SECONDS)).isTrue();
+        executor.shutdown();
+
+        Integer storedCount = jdbcTemplate.queryForObject(
+                "SELECT available_seat_count FROM events WHERE id = ?", Integer.class, EVENT_ID);
+        Long actualCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM event_seats WHERE event_id = ? AND status = 'AVAILABLE'",
+                Long.class, EVENT_ID);
+
+        System.out.println("[AVAILABLE COUNT] 성공: " + successCount.get()
+                + ", 실패 사유: " + failReasons
+                + ", 저장 카운터: " + storedCount
+                + ", 실제 AVAILABLE: " + actualCount);
+
+        assertThat(successCount.get()).isEqualTo(THREAD_COUNT);
+        assertThat(storedCount.longValue()).isEqualTo(actualCount);
     }
 
     // === Helper ===
