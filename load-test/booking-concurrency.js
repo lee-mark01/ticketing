@@ -28,11 +28,13 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 
-// 커스텀 메트릭
+// 커스텀 메트릭: 성공/충돌뿐 아니라 미분류 실패를 숨기지 않고 별도 집계한다.
 const holdSuccess = new Counter('hold_success');
 const holdFail = new Counter('hold_fail');
 const holdConflict = new Counter('hold_conflict_409');
 const holdServerError = new Counter('hold_server_error_500');
+const holdOtherHttpError = new Counter('hold_other_http_error');
+const holdNetworkError = new Counter('hold_network_error');
 
 const STRATEGY = __ENV.STRATEGY || 'PESSIMISTIC';
 const SCENARIO = __ENV.SCENARIO || 'smoke';
@@ -123,7 +125,9 @@ export default function (data) {
   } else {
     holdFail.add(1);
     if (res.status === 409) holdConflict.add(1);
-    if (res.status >= 500) holdServerError.add(1);
+    else if (res.status >= 500) holdServerError.add(1);
+    else if (res.status === 0) holdNetworkError.add(1);
+    else holdOtherHttpError.add(1);
   }
 
   sleep(0.1); // 100ms 간격

@@ -12,11 +12,11 @@ import java.util.List;
 public interface EventSeatRepository extends JpaRepository<EventSeat, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT es FROM EventSeat es WHERE es.id IN :ids")
+    @Query("SELECT es FROM EventSeat es WHERE es.id IN :ids ORDER BY es.id")
     List<EventSeat> findAllByIdWithLock(@Param("ids") List<Long> ids);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT es FROM EventSeat es WHERE es.event.id = :eventId AND es.id IN :ids")
+    @Query("SELECT es FROM EventSeat es WHERE es.event.id = :eventId AND es.id IN :ids ORDER BY es.id")
     List<EventSeat> findAllByEventIdAndIdInWithLock(@Param("eventId") Long eventId, @Param("ids") List<Long> ids);
 
     @Query("SELECT es FROM EventSeat es WHERE es.event.id = :eventId AND es.id IN :ids")

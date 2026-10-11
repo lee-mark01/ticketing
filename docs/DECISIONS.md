@@ -66,6 +66,21 @@
 - 결정: HOLD 성공 시 감소, CONFIRM 시 변화 없음, CANCEL/EXPIRE 시 증가.
 - 이유: availableSeatCount는 "현재 선택 가능한 좌석 수"를 의미. HELD 좌석은 다른 사용자가 선택할 수 없으므로 HOLD 시점에 감소해야 좌석맵 조회 결과가 정확하다.
 
+## [2026-10-11] availableSeatCount 갱신: 조건부 원자적 UPDATE
+- 맥락: 같은 공연의 서로 다른 좌석은 좌석 행 락이 겹치지 않아 Event 엔티티의 read-modify-write에서 lost update가 발생했다.
+- 결정: `available_seat_count = available_seat_count - :n WHERE available_seat_count >= :n` 원자적 UPDATE를 사용한다.
+- 이유: Event 행 비관적 락은 모든 예매를 한 행에 직렬화하고, `@Version`은 고경합 시 재시도가 필요하다. 카운터 제거는 조회마다 COUNT 비용이 생기므로 선택하지 않았다.
+
+## [2026-10-11] 예매 상태 전이: PENDING 조건부 UPDATE
+- 맥락: confirm/cancel/expire 경쟁이 Reservation 상태가 아니라 EventSeat의 `@Version` 충돌에 우연히 의존했다.
+- 결정: 각 전이를 `UPDATE ... WHERE status = 'PENDING'`으로 선점하고 영향 행이 0이면 후속 처리를 중단한다.
+- 이유: Reservation 행 비관적 락보다 대기 구간이 짧고, 별도 `@Version` 및 재시도 없이 전이 성공 여부를 한 SQL 결과로 판단할 수 있다.
+
+## [2026-10-11] 다중 좌석 잠금 순서: event_seat ID 오름차순
+- 맥락: 겹치는 좌석 묶음을 서로 다른 순서로 잠그면 트랜잭션 간 순환 대기가 생길 수 있다.
+- 결정: 모든 다중 좌석 `PESSIMISTIC_WRITE` 조회에 `ORDER BY es.id`를 적용한다.
+- 이유: 동일 자원을 항상 같은 순서로 잠가 데드락 조건을 줄인다. 데드락 발생 자체는 비결정적이므로 전후 발생률은 주장하지 않는다.
+
 ## [2026-06-03] HOLD 좌석 조회: eventId 조건 포함
 - 맥락: HOLD API에서 좌석을 조회할 때 seatIds만으로 조회할지, eventId도 조건에 포함할지.
 - 결정: `findAllByEventIdAndIdInWithLock(eventId, seatIds)` — eventId 조건 포함.
