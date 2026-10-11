@@ -19,7 +19,7 @@ jobs:
           java-version: "17"
           cache: gradle
       - name: Run backend tests
-        run: ./gradlew test
+        run: bash ./gradlew test
 
   frontend:
     runs-on: ubuntu-latest
