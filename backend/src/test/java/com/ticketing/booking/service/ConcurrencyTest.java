@@ -1,5 +1,10 @@
 package com.ticketing.booking.service;
 
+import com.ticketing.booking.dto.HoldResponse;
+import com.ticketing.booking.entity.ReservationStatus;
+import com.ticketing.booking.repository.ReservationRepository;
+import com.ticketing.booking.scheduler.HoldExpiryScheduler;
+import com.ticketing.common.exception.BusinessException;
 import com.ticketing.event.entity.EventSeat;
 import com.ticketing.event.entity.EventSeatStatus;
 import com.ticketing.event.repository.EventSeatRepository;
@@ -16,10 +21,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.util.AopTestUtils;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -51,6 +60,9 @@ class ConcurrencyTest {
 
     @Autowired ConcurrencyExperimentService experimentService;
     @Autowired ReservationService reservationService;
+    @Autowired HoldExpiryScheduler holdExpiryScheduler;
+    @Autowired PlatformTransactionManager transactionManager;
+    @Autowired ReservationRepository reservationRepository;
     @Autowired EventSeatRepository eventSeatRepository;
     @Autowired UserRepository userRepository;
     @Autowired JdbcTemplate jdbcTemplate;
@@ -91,6 +103,8 @@ class ConcurrencyTest {
     void tearDown() {
         // readBarrier 초기화 — 이전 테스트의 barrier가 다음 테스트에 남지 않도록
         getTargetService().setReadBarrier(null);
+        getTargetReservationService().setBeforeStatusTransitionHook(null);
+        ReflectionTestUtils.setField(getTargetExpiryScheduler(), "beforeStatusTransitionHook", null);
     }
 
     @Test
@@ -329,10 +343,144 @@ class ConcurrencyTest {
         assertThat(storedCount.longValue()).isEqualTo(actualCount);
     }
 
+    @Test
+    @DisplayName("confirm vs cancel: PENDING 조건부 전이로 정확히 하나만 성공")
+    void confirmVsCancel_exactlyOneTransitionSucceeds() throws Exception {
+        Long seatId = findAvailableSeatId();
+        HoldResponse hold = reservationService.holdSeats(EVENT_ID, List.of(seatId), userIds.get(0));
+        CyclicBarrier transitionBarrier = new CyclicBarrier(2);
+        getTargetReservationService().setBeforeStatusTransitionHook(
+                () -> awaitBarrier(transitionBarrier));
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<Throwable> confirm = executor.submit(() -> captureFailure(() ->
+                reservationService.confirmReservation(hold.reservationId(), userIds.get(0))));
+        Future<Throwable> cancel = executor.submit(() -> captureFailure(() ->
+                reservationService.cancelHold(hold.reservationId(), userIds.get(0))));
+
+        List<Throwable> failures = java.util.Arrays.asList(
+                        confirm.get(30, TimeUnit.SECONDS), cancel.get(30, TimeUnit.SECONDS))
+                .stream().filter(java.util.Objects::nonNull).toList();
+        executor.shutdown();
+
+        long successCount = 2L - failures.size();
+        System.out.println("[CONFIRM VS CANCEL] 성공: " + successCount + ", 실패: " + describe(failures));
+
+        assertThat(successCount).isEqualTo(1);
+        assertThat(failures).singleElement().isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("confirm vs expire: PENDING 조건부 전이로 하나의 최종 상태만 반영")
+    void confirmVsExpire_exactlyOneTransitionWins() throws Exception {
+        Long seatId = findAvailableSeatId();
+        HoldResponse hold = reservationService.holdSeats(EVENT_ID, List.of(seatId), userIds.get(0));
+        jdbcTemplate.update("UPDATE reservations SET expires_at = now() + interval '1 second' WHERE id = ?",
+                hold.reservationId());
+
+        CyclicBarrier transitionBarrier = new CyclicBarrier(2);
+        CountDownLatch confirmReachedTransition = new CountDownLatch(1);
+        getTargetReservationService().setBeforeStatusTransitionHook(() -> {
+            confirmReachedTransition.countDown();
+            awaitBarrier(transitionBarrier);
+        });
+        ReflectionTestUtils.setField(getTargetExpiryScheduler(), "beforeStatusTransitionHook",
+                (Runnable) () -> awaitBarrier(transitionBarrier));
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<Throwable> confirm = executor.submit(() -> captureFailure(() ->
+                reservationService.confirmReservation(hold.reservationId(), userIds.get(0))));
+        assertThat(confirmReachedTransition.await(10, TimeUnit.SECONDS)).isTrue();
+        awaitReservationExpiry(hold.reservationId());
+        Future<Throwable> expire = executor.submit(() -> captureFailure(() ->
+                new TransactionTemplate(transactionManager).executeWithoutResult(
+                        ignored -> ReflectionTestUtils.invokeMethod(
+                                getTargetExpiryScheduler(),
+                                "expireReservation",
+                                reservationRepository.findById(hold.reservationId()).orElseThrow(),
+                                LocalDateTime.now()))));
+
+        List<Throwable> failures = java.util.Arrays.asList(
+                        confirm.get(30, TimeUnit.SECONDS), expire.get(30, TimeUnit.SECONDS))
+                .stream().filter(java.util.Objects::nonNull).toList();
+        executor.shutdown();
+
+        String status = jdbcTemplate.queryForObject(
+                "SELECT status FROM reservations WHERE id = ?", String.class, hold.reservationId());
+        String seatStatus = jdbcTemplate.queryForObject(
+                "SELECT status FROM event_seats WHERE id = ?", String.class, seatId);
+        Integer paymentCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM payments WHERE reservation_id = ?", Integer.class, hold.reservationId());
+
+        System.out.println("[CONFIRM VS EXPIRE] 최종 예매: " + status
+                + ", 좌석: " + seatStatus
+                + ", 결제: " + paymentCount
+                + ", 실패: " + describe(failures));
+
+        assertThat(failures).allMatch(BusinessException.class::isInstance);
+        if (ReservationStatus.CONFIRMED.name().equals(status)) {
+            assertThat(seatStatus).isEqualTo("SOLD");
+            assertThat(paymentCount).isEqualTo(1);
+        } else {
+            assertThat(status).isEqualTo(ReservationStatus.EXPIRED.name());
+            assertThat(seatStatus).isEqualTo("AVAILABLE");
+            assertThat(paymentCount).isZero();
+        }
+    }
+
     // === Helper ===
 
     private ConcurrencyExperimentService getTargetService() {
         return AopTestUtils.getTargetObject(experimentService);
+    }
+
+    private ReservationService getTargetReservationService() {
+        return AopTestUtils.getTargetObject(reservationService);
+    }
+
+    private HoldExpiryScheduler getTargetExpiryScheduler() {
+        return AopTestUtils.getTargetObject(holdExpiryScheduler);
+    }
+
+    private static void awaitBarrier(CyclicBarrier barrier) {
+        try {
+            barrier.await(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Throwable captureFailure(ThrowingAction action) {
+        try {
+            action.run();
+            return null;
+        } catch (Throwable throwable) {
+            return throwable;
+        }
+    }
+
+    private static List<String> describe(List<Throwable> failures) {
+        return failures.stream()
+                .map(failure -> failure.getClass().getSimpleName() + ": " + failure.getMessage())
+                .toList();
+    }
+
+    private void awaitReservationExpiry(Long reservationId) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            Boolean expired = jdbcTemplate.queryForObject(
+                    "SELECT expires_at < now() FROM reservations WHERE id = ?", Boolean.class, reservationId);
+            if (Boolean.TRUE.equals(expired)) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("예매 만료 시각을 5초 안에 지나지 못했습니다.");
+    }
+
+    @FunctionalInterface
+    private interface ThrowingAction {
+        void run() throws Exception;
     }
 
     private Long findAvailableSeatId() {

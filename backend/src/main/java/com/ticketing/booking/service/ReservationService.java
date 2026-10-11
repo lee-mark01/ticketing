@@ -44,9 +44,15 @@ public class ReservationService {
 
     // 테스트 전용: seat.sell() 이후, Payment 생성 직전에 실행되는 훅
     private Runnable beforePaymentHook;
+    // 테스트 전용: 상태를 읽은 뒤 상태 전이를 시도하기 직전에 동시 실행을 맞추는 훅
+    private Runnable beforeStatusTransitionHook;
 
     void setBeforePaymentHook(Runnable hook) {
         this.beforePaymentHook = hook;
+    }
+
+    void setBeforeStatusTransitionHook(Runnable hook) {
+        this.beforeStatusTransitionHook = hook;
     }
 
     @Transactional
@@ -127,15 +133,18 @@ public class ReservationService {
                     "ALREADY_CONFIRMED", "이미 확정된 예매는 이 방법으로 취소할 수 없습니다.");
         }
 
-        reservation.cancel();
+        runBeforeStatusTransitionHook();
+
+        if (reservationRepository.cancelIfPending(reservationId, userId) == 0) {
+            throw alreadyProcessed();
+        }
 
         List<ReservationItem> items = reservationItemRepository.findByReservationId(reservationId);
         for (ReservationItem item : items) {
             item.getEventSeat().release();
         }
 
-        Event event = reservation.getEvent();
-        event.increaseAvailableSeatCount(items.size());
+        eventRepository.increaseAvailableSeatCount(reservation.getEvent().getId(), items.size());
     }
 
     @Transactional
@@ -152,6 +161,12 @@ public class ReservationService {
         if (reservation.getStatus() != ReservationStatus.PENDING) {
             throw new BusinessException(HttpStatus.CONFLICT,
                     "ALREADY_CONFIRMED", "이미 처리된 예매입니다.");
+        }
+
+        runBeforeStatusTransitionHook();
+
+        if (reservationRepository.confirmIfPending(reservationId, userId) == 0) {
+            throw alreadyProcessed();
         }
 
         // 좌석 HELD→SOLD
@@ -173,14 +188,22 @@ public class ReservationService {
         Payment payment = Payment.create(reservation, totalAmount);
         paymentRepository.save(payment);
 
-        // Reservation 확정
-        reservation.confirm();
-
         return ConfirmResponse.from(
                 reservation.getId(),
-                reservation.getStatus().name(),
+                ReservationStatus.CONFIRMED.name(),
                 payment
         );
+    }
+
+    private void runBeforeStatusTransitionHook() {
+        if (beforeStatusTransitionHook != null) {
+            beforeStatusTransitionHook.run();
+        }
+    }
+
+    private BusinessException alreadyProcessed() {
+        return new BusinessException(HttpStatus.CONFLICT,
+                "RESERVATION_ALREADY_PROCESSED", "이미 처리된 예매입니다.");
     }
 
     @Transactional(readOnly = true)

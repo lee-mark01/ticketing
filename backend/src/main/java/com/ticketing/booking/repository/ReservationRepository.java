@@ -5,6 +5,7 @@ import com.ticketing.booking.entity.ReservationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +18,36 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     Optional<Reservation> findByIdAndUserId(Long id, Long userId);
 
     List<Reservation> findByStatusAndExpiresAtBefore(ReservationStatus status, LocalDateTime now);
+
+    @Modifying
+    @Query(value = """
+            UPDATE reservations
+            SET status = 'CONFIRMED'
+            WHERE id = :reservationId
+              AND user_id = :userId
+              AND status = 'PENDING'
+            """, nativeQuery = true)
+    int confirmIfPending(@Param("reservationId") Long reservationId, @Param("userId") Long userId);
+
+    @Modifying
+    @Query(value = """
+            UPDATE reservations
+            SET status = 'CANCELLED'
+            WHERE id = :reservationId
+              AND user_id = :userId
+              AND status = 'PENDING'
+            """, nativeQuery = true)
+    int cancelIfPending(@Param("reservationId") Long reservationId, @Param("userId") Long userId);
+
+    @Modifying
+    @Query(value = """
+            UPDATE reservations
+            SET status = 'EXPIRED'
+            WHERE id = :reservationId
+              AND status = 'PENDING'
+              AND expires_at < :now
+            """, nativeQuery = true)
+    int expireIfPending(@Param("reservationId") Long reservationId, @Param("now") LocalDateTime now);
 
     @Query(value = """
             SELECT r.id            AS reservationId,

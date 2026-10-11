@@ -24,4 +24,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
               AND available_seat_count >= :count
             """, nativeQuery = true)
     int decreaseAvailableSeatCount(@Param("eventId") Long eventId, @Param("count") int count);
+
+    @Modifying
+    @Query(value = """
+            UPDATE events
+            SET available_seat_count = available_seat_count + :count
+            WHERE id = :eventId
+            """, nativeQuery = true)
+    int increaseAvailableSeatCount(@Param("eventId") Long eventId, @Param("count") int count);
 }

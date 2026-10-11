@@ -71,6 +71,11 @@
 - 결정: `available_seat_count = available_seat_count - :n WHERE available_seat_count >= :n` 원자적 UPDATE를 사용한다.
 - 이유: Event 행 비관적 락은 모든 예매를 한 행에 직렬화하고, `@Version`은 고경합 시 재시도가 필요하다. 카운터 제거는 조회마다 COUNT 비용이 생기므로 선택하지 않았다.
 
+## [2026-10-11] 예매 상태 전이: PENDING 조건부 UPDATE
+- 맥락: confirm/cancel/expire 경쟁이 Reservation 상태가 아니라 EventSeat의 `@Version` 충돌에 우연히 의존했다.
+- 결정: 각 전이를 `UPDATE ... WHERE status = 'PENDING'`으로 선점하고 영향 행이 0이면 후속 처리를 중단한다.
+- 이유: Reservation 행 비관적 락보다 대기 구간이 짧고, 별도 `@Version` 및 재시도 없이 전이 성공 여부를 한 SQL 결과로 판단할 수 있다.
+
 ## [2026-06-03] HOLD 좌석 조회: eventId 조건 포함
 - 맥락: HOLD API에서 좌석을 조회할 때 seatIds만으로 조회할지, eventId도 조건에 포함할지.
 - 결정: `findAllByEventIdAndIdInWithLock(eventId, seatIds)` — eventId 조건 포함.
