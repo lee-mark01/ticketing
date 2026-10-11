@@ -76,6 +76,11 @@
 - 결정: 각 전이를 `UPDATE ... WHERE status = 'PENDING'`으로 선점하고 영향 행이 0이면 후속 처리를 중단한다.
 - 이유: Reservation 행 비관적 락보다 대기 구간이 짧고, 별도 `@Version` 및 재시도 없이 전이 성공 여부를 한 SQL 결과로 판단할 수 있다.
 
+## [2026-10-11] 다중 좌석 잠금 순서: event_seat ID 오름차순
+- 맥락: 겹치는 좌석 묶음을 서로 다른 순서로 잠그면 트랜잭션 간 순환 대기가 생길 수 있다.
+- 결정: 모든 다중 좌석 `PESSIMISTIC_WRITE` 조회에 `ORDER BY es.id`를 적용한다.
+- 이유: 동일 자원을 항상 같은 순서로 잠가 데드락 조건을 줄인다. 데드락 발생 자체는 비결정적이므로 전후 발생률은 주장하지 않는다.
+
 ## [2026-06-03] HOLD 좌석 조회: eventId 조건 포함
 - 맥락: HOLD API에서 좌석을 조회할 때 seatIds만으로 조회할지, eventId도 조건에 포함할지.
 - 결정: `findAllByEventIdAndIdInWithLock(eventId, seatIds)` — eventId 조건 포함.
