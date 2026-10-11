@@ -37,7 +37,7 @@
   - [x] 락 없을 때 **중복판매 발생** 재현 → `ConcurrencyTest.naive_oversell` (active reservation_item ≥ 2)
   - [x] 비관적 락(`FOR UPDATE`) vs 낙관적 락(`@Version`) 비교 → `docs/evidence/phase4-concurrency.md`
   - [x] 격리 수준(READ COMMITTED vs SERIALIZABLE) 동작 차이 → `docs/evidence/phase4-isolation-demo.sql`
-  - [ ] k6 부하테스트 결과 (스크립트 작성 완료, 실행 예정) → `load-test/booking-concurrency.js`
+  - [x] k6 hot-seat 부하테스트 결과 (100 VU/100 iterations) → `docs/evidence/phase4-concurrency.md`
   - [x] 락 제거 시 실패 / 적용 시 통과하는 멀티스레드 테스트 → `ConcurrencyTest` 4개
 
 ## 보너스 (있으면 가산점)

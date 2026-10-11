@@ -182,11 +182,12 @@
 
 **증명 완료:**
 - Deterministic concurrency test로 3전략 비교 (correctness)
+- k6 hot-seat 100 VU/100회 실측: PESSIMISTIC/OPTIMISTIC 모두 초과 판매 좌석 0
 - EXPLAIN ANALYZE before/after 인덱스 효과
 - 트랜잭션 롤백 원자성
 
 **아직 실행 예정 / 미완:**
-- k6 부하 테스트: 스크립트 작성 완료, 실제 실행 결과는 미수집
+- k6 NAIVE 및 seat_pool/spike 시나리오 비교
 - 격리 수준 시연: SQL 스크립트 작성 완료, 수동 시연 예정
 - 분산 락(Redis): 단일 서버 구조에서는 불필요, 멀티 서버 시 필요
 
@@ -195,5 +196,5 @@
 - 모니터링/알림 (Grafana, Prometheus)
 - 프론트엔드 실시간 좌석 상태 업데이트 (WebSocket/SSE)
 
-**증거:** 없음 (마무리)
-**발표자 포인트:** "k6 스크립트는 완성했지만 실행 결과는 아직 수집하지 않았다. 과장하지 않고 실제 증명한 것만 발표한다."
+**증거:** `docs/evidence/phase4-concurrency.md`
+**발표자 포인트:** "단일 좌석 hot-seat만 실측했고, 나머지 시나리오는 측정하지 않았다. 과장하지 않고 실제 증명한 범위만 발표한다."
